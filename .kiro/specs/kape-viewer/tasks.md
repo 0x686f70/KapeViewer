@@ -1,5 +1,8 @@
 # Implementation Plan
 
+> **Note:** After completing each task, automatically commit and push changes to Git repository.
+> - Command: `git add .` → `git commit -m "Task X: [description]"` → `git push origin main`
+
 - [x] 1. Set up project structure and core models
 
 
