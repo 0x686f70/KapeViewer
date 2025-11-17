@@ -1,0 +1,25 @@
+<Window x:Class="KapeViewer.ProgressDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Building Timeline" 
+        Height="150" 
+        Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" x:Name="StatusText" Text="Processing CSV files..." FontSize="14"/>
+        
+        <ProgressBar Grid.Row="2" x:Name="ProgressBar" Height="25" Minimum="0" Maximum="100"/>
+        
+        <Button Grid.Row="4" x:Name="CancelButton" Content="Cancel" Width="80" HorizontalAlignment="Right" Click="CancelButton_Click"/>
+    </Grid>
+</Window>
