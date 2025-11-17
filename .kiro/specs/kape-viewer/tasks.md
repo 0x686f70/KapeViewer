@@ -194,8 +194,13 @@
     - Implement SelectionChanged handler to call ApplyFilters
     - _Requirements: 4.13, 7.3_
 
-- [ ] 6. Implement column management and export functionality
-  - [ ] 6.1 Implement Columns visibility dialog
+- [x] 6. Implement column management and export functionality
+
+
+
+  - [x] 6.1 Implement Columns visibility dialog
+
+
     - Create ColumnsDialog.xaml window with ListBox of checkboxes
     - Populate ListBox with all DataGrid column names
     - Bind checkbox IsChecked to column visibility state
@@ -204,7 +209,9 @@
     - Store visibility state in _columnVisibility dictionary
     - _Requirements: 6.1, 6.2, 4.10_
 
-  - [ ] 6.2 Implement Export Current Table functionality
+  - [x] 6.2 Implement Export Current Table functionality
+
+
     - Add File menu item "Export Current Table"
     - Add Export dropdown button in toolbar with "Export Current Table" menu item
     - Implement ExportTable_Click handler with SaveFileDialog
@@ -214,7 +221,9 @@
     - Show success message or error dialog
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 4.9_
 
-  - [ ] 6.3 Implement Export Timeline functionality
+  - [x] 6.3 Implement Export Timeline functionality
+
+
     - Add "Export Timeline" menu item to Export dropdown
     - Implement ExportTimeline_Click handler with SaveFileDialog
     - Export _filteredTimelineEvents (respects filters)
@@ -223,7 +232,9 @@
     - Use CsvHelper to write CSV with headers
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 6.4 Implement Copy to Clipboard functionality
+  - [x] 6.4 Implement Copy to Clipboard functionality
+
+
     - Add Tools menu item "Copy Selected Rows"
     - Add Copy button in toolbar
     - Implement CopyRows_Click handler
@@ -233,7 +244,9 @@
     - Show feedback (status bar message or tooltip)
     - _Requirements: 6.4, 6.5, 4.11_
 
-  - [ ] 6.5 Implement Auto-size Columns functionality
+  - [x] 6.5 Implement Auto-size Columns functionality
+
+
     - Add View menu item "Auto-size Columns"
     - Add Auto-size button in toolbar
     - Implement AutoSizeColumns_Click handler

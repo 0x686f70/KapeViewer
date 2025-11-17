@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -24,6 +25,7 @@ namespace KapeViewer
         private readonly FilterCriteria _filterCriteria = new();
         private DispatcherTimer? _searchDebounceTimer;
         private bool _isUtcMode = true;
+        private Dictionary<string, bool> _columnVisibility = new();
 
         public MainWindow()
         {
@@ -124,6 +126,13 @@ namespace KapeViewer
                 {
                     // Bind DataTable to DataGrid
                     TableDataGrid.ItemsSource = _currentTable.DefaultView;
+
+                    // Initialize column visibility for new file
+                    _columnVisibility.Clear();
+                    foreach (var column in TableDataGrid.Columns)
+                    {
+                        _columnVisibility[column.Header.ToString() ?? string.Empty] = true;
+                    }
 
                     // Switch to Table tab automatically
                     MainTabControl.SelectedIndex = 0;
@@ -482,32 +491,339 @@ namespace KapeViewer
 
         private void ExportTable_Click(object sender, RoutedEventArgs e)
         {
-            // Will be implemented in task 6
-            MessageBox.Show("Export Table functionality will be implemented in task 6.", "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Only works for Table view
+            if (MainTabControl.SelectedIndex != 0 || _currentTable == null)
+            {
+                MessageBox.Show(
+                    "Please load a CSV file in Table view before exporting.",
+                    "No Data to Export",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // Show SaveFileDialog
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv",
+                FileName = "export.csv"
+            };
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                try
+                {
+                    ExportTableToCsv(dialog.FileName);
+                    MessageBox.Show(
+                        $"Table exported successfully to:\n{dialog.FileName}",
+                        "Export Complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Error exporting table:\n{ex.Message}",
+                        "Export Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExportTableToCsv(string filePath)
+        {
+            if (_currentTable == null) return;
+
+            using var writer = new StreamWriter(filePath);
+            using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
+
+            // Get filtered DataView
+            var dataView = _currentTable.DefaultView;
+
+            // Write headers for visible columns only
+            var visibleColumns = TableDataGrid.Columns
+                .Where(col => col.Visibility == Visibility.Visible)
+                .Select(col => col.Header.ToString() ?? string.Empty)
+                .ToList();
+
+            foreach (var header in visibleColumns)
+            {
+                csv.WriteField(header);
+            }
+            csv.NextRecord();
+
+            // Write data rows (respects current filter)
+            foreach (System.Data.DataRowView rowView in dataView)
+            {
+                foreach (var columnName in visibleColumns)
+                {
+                    var value = rowView[columnName];
+                    csv.WriteField(value);
+                }
+                csv.NextRecord();
+            }
         }
 
         private void ExportTimeline_Click(object sender, RoutedEventArgs e)
         {
-            // Will be implemented in task 6
-            MessageBox.Show("Export Timeline functionality will be implemented in task 6.", "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Check if timeline has been built
+            if (_allTimelineEvents == null || _allTimelineEvents.Count == 0)
+            {
+                MessageBox.Show(
+                    "Please build the global timeline before exporting.",
+                    "No Timeline Data",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // Show SaveFileDialog
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                DefaultExt = ".csv",
+                FileName = "timeline_export.csv"
+            };
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                try
+                {
+                    ExportTimelineToCsv(dialog.FileName);
+                    MessageBox.Show(
+                        $"Timeline exported successfully to:\n{dialog.FileName}",
+                        "Export Complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Error exporting timeline:\n{ex.Message}",
+                        "Export Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExportTimelineToCsv(string filePath)
+        {
+            using var writer = new StreamWriter(filePath);
+            using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
+
+            // Write headers
+            csv.WriteField("Timestamp");
+            csv.WriteField("Source");
+            csv.WriteField("GroupName");
+            csv.WriteField("Description");
+            csv.NextRecord();
+
+            // Get events to export (use filtered if filters are applied, otherwise all)
+            var eventsToExport = _filteredTimelineEvents.Count > 0 ? _filteredTimelineEvents : _allTimelineEvents;
+
+            // Write data rows
+            foreach (var evt in eventsToExport)
+            {
+                // Apply UTC/Local conversion based on current mode
+                var displayTimestamp = DisplayTime(evt.Timestamp, _isUtcMode);
+                csv.WriteField(displayTimestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                csv.WriteField(evt.Source);
+                csv.WriteField(evt.GroupName);
+                csv.WriteField(evt.Description);
+                csv.NextRecord();
+            }
         }
 
         private void ShowColumnsDialog_Click(object sender, RoutedEventArgs e)
         {
-            // Will be implemented in task 6
-            MessageBox.Show("Columns dialog will be implemented in task 6.", "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Only works for Table view
+            if (MainTabControl.SelectedIndex != 0 || _currentTable == null)
+            {
+                MessageBox.Show(
+                    "Column visibility can only be changed in Table view with a loaded CSV file.",
+                    "Table View Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            // Initialize column visibility dictionary if empty
+            if (_columnVisibility.Count == 0)
+            {
+                foreach (var column in TableDataGrid.Columns)
+                {
+                    _columnVisibility[column.Header.ToString() ?? string.Empty] = column.Visibility == Visibility.Visible;
+                }
+            }
+
+            // Create and show dialog
+            var dialog = new ColumnsDialog
+            {
+                Owner = this
+            };
+            dialog.SetColumns(_columnVisibility);
+
+            if (dialog.ShowDialog() == true)
+            {
+                // Apply column visibility changes
+                _columnVisibility = dialog.GetColumnVisibility();
+                ApplyColumnVisibility();
+            }
+        }
+
+        private void ApplyColumnVisibility()
+        {
+            foreach (var column in TableDataGrid.Columns)
+            {
+                var headerText = column.Header.ToString() ?? string.Empty;
+                if (_columnVisibility.TryGetValue(headerText, out bool isVisible))
+                {
+                    column.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
         }
 
         private void CopyRows_Click(object sender, RoutedEventArgs e)
         {
-            // Will be implemented in task 6
-            MessageBox.Show("Copy functionality will be implemented in task 6.", "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                string clipboardText;
+
+                if (MainTabControl.SelectedIndex == 0)
+                {
+                    // Table view - copy selected rows from DataGrid
+                    clipboardText = CopyTableRows();
+                }
+                else
+                {
+                    // Timeline view - copy selected rows from ListView
+                    clipboardText = CopyTimelineRows();
+                }
+
+                if (!string.IsNullOrEmpty(clipboardText))
+                {
+                    Clipboard.SetText(clipboardText);
+                    StatusBarRowCount.Text = $"Copied {clipboardText.Split('\n').Length - 1} rows to clipboard";
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "No rows selected. Please select one or more rows to copy.",
+                        "No Selection",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error copying to clipboard:\n{ex.Message}",
+                    "Copy Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private string CopyTableRows()
+        {
+            if (TableDataGrid.SelectedItems.Count == 0)
+                return string.Empty;
+
+            var sb = new System.Text.StringBuilder();
+
+            // Get visible columns
+            var visibleColumns = TableDataGrid.Columns
+                .Where(col => col.Visibility == Visibility.Visible)
+                .Select(col => col.Header.ToString() ?? string.Empty)
+                .ToList();
+
+            // Write headers (tab-separated for Excel compatibility)
+            sb.AppendLine(string.Join("\t", visibleColumns));
+
+            // Write selected rows
+            foreach (System.Data.DataRowView rowView in TableDataGrid.SelectedItems)
+            {
+                var values = visibleColumns.Select(colName => rowView[colName]?.ToString() ?? string.Empty);
+                sb.AppendLine(string.Join("\t", values));
+            }
+
+            return sb.ToString();
+        }
+
+        private string CopyTimelineRows()
+        {
+            if (TimelineListView.SelectedItems.Count == 0)
+                return string.Empty;
+
+            var sb = new System.Text.StringBuilder();
+
+            // Write headers (tab-separated for Excel compatibility)
+            sb.AppendLine("Timestamp\tSource\tDescription");
+
+            // Write selected rows
+            foreach (TimelineEvent evt in TimelineListView.SelectedItems)
+            {
+                var timestamp = DisplayTime(evt.Timestamp, _isUtcMode).ToString("yyyy-MM-dd HH:mm:ss.fff");
+                sb.AppendLine($"{timestamp}\t{evt.Source}\t{evt.Description}");
+            }
+
+            return sb.ToString();
         }
 
         private void AutoSizeColumns_Click(object sender, RoutedEventArgs e)
         {
-            // Will be implemented in task 6
-            MessageBox.Show("Auto-size columns will be implemented in task 6.", "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Only works for Table view
+            if (MainTabControl.SelectedIndex != 0 || _currentTable == null)
+            {
+                MessageBox.Show(
+                    "Auto-size columns can only be used in Table view with a loaded CSV file.",
+                    "Table View Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                // Show busy cursor
+                Cursor = System.Windows.Input.Cursors.Wait;
+
+                // Auto-size all visible columns
+                foreach (var column in TableDataGrid.Columns)
+                {
+                    if (column.Visibility == Visibility.Visible)
+                    {
+                        // Use DataGrid's built-in auto-sizing
+                        // This will measure based on visible rows (virtualization limits measurement automatically)
+                        column.Width = DataGridLength.Auto;
+                        
+                        // Force update
+                        TableDataGrid.UpdateLayout();
+                        
+                        // Get the actual width and set it as fixed to improve performance
+                        var actualWidth = column.ActualWidth;
+                        column.Width = new DataGridLength(actualWidth);
+                    }
+                }
+
+                StatusBarRowCount.Text = "Columns auto-sized";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error auto-sizing columns:\n{ex.Message}",
+                    "Auto-size Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Restore cursor
+                Cursor = System.Windows.Input.Cursors.Arrow;
+            }
         }
 
         #endregion

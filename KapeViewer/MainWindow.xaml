@@ -12,11 +12,17 @@
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
                 <MenuItem Header="_Open Case" Click="OpenCase_Click" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="_Export Current Table" Click="ExportTable_Click" InputGestureText="Ctrl+E"/>
                 <Separator/>
                 <MenuItem Header="E_xit" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="_Tools">
                 <MenuItem Header="Build Global _Timeline" Click="BuildTimeline_Click" InputGestureText="Ctrl+T"/>
+                <MenuItem Header="_Copy Selected Rows" Click="CopyRows_Click" InputGestureText="Ctrl+C"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Columns" Click="ShowColumnsDialog_Click"/>
+                <MenuItem Header="_Auto-size Columns" Click="AutoSizeColumns_Click"/>
             </MenuItem>
         </Menu>
 
