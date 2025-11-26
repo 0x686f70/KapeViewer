@@ -28,7 +28,7 @@
 
 ## Phase 4: Advanced DFIR Features
 **Goal**: Add filtering, searching, and export capabilities.
-- [ ] **Task 4.1**: Implement Advanced Filtering (AND/OR logic).
-- [ ] **Task 4.2**: Add "Global Search" across all columns.
-- [ ] **Task 4.3**: Implement "Export to CSV/Excel" for filtered results.
-- [ ] **Task 4.4**: Add "Case Summary" dashboard (Charts/Graphs).
+- [x] **Task 4.1**: Implement Advanced Filtering (AND/OR logic).
+- [x] **Task 4.2**: Add "Global Search" across all columns.
+- [x] **Task 4.3**: Implement "Export to CSV/Excel" for filtered results.
+- [x] **Task 4.4**: Add "Case Summary" dashboard (Charts/Graphs).

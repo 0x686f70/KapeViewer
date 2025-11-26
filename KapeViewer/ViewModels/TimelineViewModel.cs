@@ -11,7 +11,7 @@ namespace KapeViewer.ViewModels
     public partial class TimelineViewModel : BaseViewModel
     {
         private readonly TimelineBuilder _timelineBuilder = new();
-        private readonly DatabaseService _databaseService = new();
+        private readonly DatabaseService _databaseService;
 
         [ObservableProperty]
         private IList _filteredEvents;
@@ -28,8 +28,9 @@ namespace KapeViewer.ViewModels
         [ObservableProperty]
         private int _eventCount;
 
-        public TimelineViewModel()
+        public TimelineViewModel(DatabaseService databaseService)
         {
+            _databaseService = databaseService;
             _filteredEvents = new VirtualizingTimelineCollection(_databaseService, _filterCriteria);
         }
 
@@ -176,10 +177,6 @@ namespace KapeViewer.ViewModels
             }
         }
         
-        // Ensure DatabaseService is disposed
-        ~TimelineViewModel()
-        {
-            _databaseService.Dispose();
-        }
+
     }
 }

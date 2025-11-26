@@ -190,6 +190,48 @@
                             </ListView.View>
                         </ListView>
                     </TabItem>
+                    <TabItem Header="Dashboard">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <materialDesign:Card Margin="16" Padding="16">
+                                <StackPanel>
+                                    <DockPanel LastChildFill="False">
+                                        <TextBlock Text="Total Events" Style="{StaticResource MaterialDesignHeadline6TextBlock}" VerticalAlignment="Center"/>
+                                        <Button Command="{Binding Dashboard.RefreshCommand}" Style="{StaticResource MaterialDesignIconButton}" DockPanel.Dock="Right" ToolTip="Refresh Dashboard">
+                                            <materialDesign:PackIcon Kind="Refresh"/>
+                                        </Button>
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding Dashboard.TotalEvents, StringFormat='N0'}" Style="{StaticResource MaterialDesignHeadline3TextBlock}" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                            
+                            <materialDesign:Card Grid.Row="1" Margin="16" Padding="16" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="Events by Source Group" Style="{StaticResource MaterialDesignHeadline6TextBlock}" Margin="0 0 0 16"/>
+                                    <ItemsControl ItemsSource="{Binding Dashboard.GroupCounts}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0 4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="200"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Key}" FontWeight="Bold"/>
+                                                    <ProgressBar Grid.Column="1" Value="{Binding Value}" Maximum="{Binding DataContext.Dashboard.TotalEvents, RelativeSource={RelativeSource AncestorType=Window}}" Height="10" Margin="8 0"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Value, StringFormat='N0'}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </Grid>
+                    </TabItem>
                 </TabControl>
             </materialDesign:Card>
 
