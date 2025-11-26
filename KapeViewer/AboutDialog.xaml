@@ -1,0 +1,59 @@
+<Window x:Class="KapeViewer.AboutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About KAPE Viewer" 
+        Height="280" 
+        Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" 
+                   Text="KAPE Viewer" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,15"/>
+
+        <TextBlock Grid.Row="1" 
+                   Text="Version 1.0.0" 
+                   FontSize="14" 
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,10"/>
+
+        <TextBlock Grid.Row="2" 
+                   Text=".NET 8.0 | Windows x64" 
+                   FontSize="12" 
+                   Foreground="Gray"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,20"/>
+
+        <TextBlock Grid.Row="3" 
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   Margin="0,0,0,10">
+            <Run Text="A Windows desktop application for Digital Forensics and Incident Response (DFIR) engineers."/>
+            <LineBreak/>
+            <LineBreak/>
+            <Run Text="Efficiently browse and analyze KAPE/!EZParser CSV outputs with table viewing, timeline merging, and advanced filtering capabilities."/>
+        </TextBlock>
+
+        <Button Grid.Row="5" 
+                Content="OK" 
+                Width="80" 
+                Height="30"
+                IsDefault="True"
+                HorizontalAlignment="Center"
+                Click="OkButton_Click"/>
+    </Grid>
+</Window>

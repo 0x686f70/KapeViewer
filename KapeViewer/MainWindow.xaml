@@ -5,24 +5,33 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KapeViewer"
         xmlns:models="clr-namespace:KapeViewer.Models"
+        xmlns:vm="clr-namespace:KapeViewer.ViewModels"
         mc:Ignorable="d"
-        Title="KAPE Viewer" Height="800" Width="1200">
+        Title="KAPE Viewer" Height="800" Width="1200"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+    
+    <Window.InputBindings>
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding FileTree.OpenCaseCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding FileTree.OpenCaseCommand}"/> <!-- Reusing OpenCase for Refresh for now -->
+        <KeyBinding Key="T" Modifiers="Control" Command="{Binding BuildTimelineCommand}"/>
+        <KeyBinding Key="E" Modifiers="Control" Command="{Binding Table.ExportTableCommand}"/>
+    </Window.InputBindings>
+
     <DockPanel>
         <!-- Menu Bar at top -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_Open Case" Click="OpenCase_Click" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="_Export Current Table" Click="ExportTable_Click" InputGestureText="Ctrl+E"/>
+                <MenuItem Header="_Open Case" Command="{Binding FileTree.OpenCaseCommand}" InputGestureText="Ctrl+O"/>
+                <MenuItem Header="_Export Current Table" Command="{Binding Table.ExportTableCommand}" InputGestureText="Ctrl+E"/>
                 <Separator/>
-                <MenuItem Header="E_xit" Click="Exit_Click"/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
             </MenuItem>
             <MenuItem Header="_Tools">
-                <MenuItem Header="Build Global _Timeline" Click="BuildTimeline_Click" InputGestureText="Ctrl+T"/>
-                <MenuItem Header="_Copy Selected Rows" Click="CopyRows_Click" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="Build Global _Timeline" Command="{Binding BuildTimelineCommand}" InputGestureText="Ctrl+T"/>
+                <MenuItem Header="_Export Timeline" Command="{Binding Timeline.ExportTimelineCommand}"/>
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Header="_Columns" Click="ShowColumnsDialog_Click"/>
-                <MenuItem Header="_Auto-size Columns" Click="AutoSizeColumns_Click"/>
+                <MenuItem Header="_UTC/Local Time" IsCheckable="True" IsChecked="{Binding Timeline.IsUtcMode, Mode=TwoWay}" Command="{Binding Timeline.ToggleUtcModeCommand}"/>
             </MenuItem>
         </Menu>
 
@@ -30,79 +39,52 @@
         <ToolBarTray DockPanel.Dock="Top">
             <ToolBar>
                 <!-- Action Buttons -->
-                <Button Content="📁 Open Case" Click="OpenCase_Click" ToolTip="Open KAPE case folder (Ctrl+O)"/>
-                <Button Content="🔄 Refresh" Click="Refresh_Click" ToolTip="Refresh case folder (F5)"/>
-                <Button Content="⏱️ Build Global Timeline" Click="BuildTimeline_Click" ToolTip="Merge all CSV files into timeline (Ctrl+T)"/>
+                <Button Content="📁 Open Case" Command="{Binding FileTree.OpenCaseCommand}" ToolTip="Open KAPE case folder (Ctrl+O)"/>
+                <Button Content="⏱️ Build Global Timeline" Command="{Binding BuildTimelineCommand}" ToolTip="Merge all CSV files into timeline (Ctrl+T)"/>
                 
                 <Separator/>
                 
-                <!-- Date Range Filters -->
+                <!-- Date Range Filters (Bound to Timeline.FilterCriteria) -->
                 <TextBlock Text="From:" VerticalAlignment="Center" Margin="5,0"/>
-                <DatePicker x:Name="FromDatePicker" Width="120" SelectedDateChanged="DateFilter_Changed" ToolTip="Filter start date"/>
+                <DatePicker Width="120" SelectedDate="{Binding Timeline.FilterCriteria.FromDate}" ToolTip="Filter start date"/>
                 
                 <TextBlock Text="To:" VerticalAlignment="Center" Margin="5,0"/>
-                <DatePicker x:Name="ToDatePicker" Width="120" SelectedDateChanged="DateFilter_Changed" ToolTip="Filter end date"/>
+                <DatePicker Width="120" SelectedDate="{Binding Timeline.FilterCriteria.ToDate}" ToolTip="Filter end date"/>
                 
-                <ToggleButton x:Name="UtcLocalToggle" Content="UTC" Width="50" Click="ToggleUtcLocal_Click" ToolTip="Toggle between UTC and Local time"/>
+                <ToggleButton Content="UTC" Width="50" IsChecked="{Binding Timeline.IsUtcMode}" Command="{Binding Timeline.ToggleUtcModeCommand}" ToolTip="Toggle between UTC and Local time"/>
                 
                 <Separator/>
-                
-                <!-- Source Filter -->
-                <TextBlock Text="Source:" VerticalAlignment="Center" Margin="5,0"/>
-                <ComboBox x:Name="SourceFilterComboBox" Width="150" SelectionChanged="SourceFilter_Changed" ToolTip="Filter by source group"/>
                 
                 <!-- Quick Search -->
                 <TextBlock Text="Search:" VerticalAlignment="Center" Margin="5,0"/>
-                <TextBox x:Name="QuickSearchTextBox" Width="200" TextChanged="QuickSearch_Changed" ToolTip="Search all columns">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Style.Triggers>
-                                <Trigger Property="Text" Value="">
-                                    <Setter Property="Background">
-                                        <Setter.Value>
-                                            <VisualBrush Stretch="None" AlignmentX="Left">
-                                                <VisualBrush.Visual>
-                                                    <TextBlock Text="Search all columns..." Foreground="Gray" Margin="5,0,0,0"/>
-                                                </VisualBrush.Visual>
-                                            </VisualBrush>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
+                <TextBox Width="200" Text="{Binding Timeline.FilterCriteria.SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search timeline">
+                    <TextBox.InputBindings>
+                         <KeyBinding Key="Enter" Command="{Binding Timeline.ApplyFiltersCommand}"/> 
+                         <!-- Note: ApplyFiltersCommand is not yet exposed as ICommand in TimelineViewModel, need to add it or use behavior -->
+                    </TextBox.InputBindings>
                 </TextBox>
-                
+                <Button Content="🔍" Command="{Binding Timeline.ApplyFiltersCommand}"/>
+
                 <Separator/>
                 
-                <!-- Export and View Controls -->
-                <Button x:Name="ExportButton" Content="💾 Export" ToolTip="Export current view">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Export Current Table" Click="ExportTable_Click"/>
-                            <MenuItem Header="Export Timeline" Click="ExportTimeline_Click"/>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                <Button Content="📋 Columns" Click="ShowColumnsDialog_Click" ToolTip="Show/hide columns"/>
-                <Button Content="📄 Copy" Click="CopyRows_Click" ToolTip="Copy selected rows (Ctrl+C)"/>
-                <Button Content="↔️ Auto-size" Click="AutoSizeColumns_Click" ToolTip="Auto-size columns"/>
+                <!-- Export -->
+                <Button Content="💾 Export Table" Command="{Binding Table.ExportTableCommand}" ToolTip="Export current table"/>
                 
-                <!-- Spacer to push row count to the right -->
+                <!-- Spacer -->
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Width="Auto" HorizontalAlignment="Stretch"/>
                 
                 <!-- Row Count Label -->
-                <TextBlock x:Name="RowCountLabel" Text="Rows: 0" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Timeline.StatusMessage}" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
             </ToolBar>
         </ToolBarTray>
 
         <!-- Status Bar at bottom -->
-        <StatusBar DockPanel.Dock="Bottom" x:Name="StatusBar">
-            <TextBlock x:Name="StatusBarCasePath" Text="No case loaded" Margin="5,0"/>
+        <StatusBar DockPanel.Dock="Bottom">
+            <TextBlock Text="{Binding FileTree.CurrentCasePath}" Margin="5,0"/>
             <Separator/>
-            <TextBlock x:Name="StatusBarViewName" Text="Table" Margin="5,0"/>
+            <TextBlock Text="{Binding Table.StatusMessage}" Margin="5,0"/>
             <Separator/>
-            <TextBlock x:Name="StatusBarRowCount" Text="Rows: 0" Margin="5,0"/>
+            <TextBlock Text="{Binding Timeline.StatusMessage}" Margin="5,0"/>
         </StatusBar>
 
         <!-- Main content area -->
@@ -115,10 +97,9 @@
 
             <!-- TreeView for file navigation -->
             <TreeView Grid.Column="0" 
-                      x:Name="FileTreeView"
-                      SelectedItemChanged="TreeView_SelectedItemChanged">
+                      ItemsSource="{Binding FileTree.Groups}"
+                      x:Name="FileTreeView">
                 <TreeView.Resources>
-                    <!-- Template for GroupNode -->
                     <HierarchicalDataTemplate DataType="{x:Type models:GroupNode}" 
                                               ItemsSource="{Binding Files}">
                         <StackPanel Orientation="Horizontal">
@@ -129,11 +110,21 @@
                         </StackPanel>
                     </HierarchicalDataTemplate>
                     
-                    <!-- Template for CsvFileItem -->
                     <DataTemplate DataType="{x:Type models:CsvFileItem}">
                         <TextBlock Text="{Binding DisplayName}"/>
                     </DataTemplate>
                 </TreeView.Resources>
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="{x:Type TreeViewItem}">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <!-- We need a way to bind selected item. 
+                             TreeView doesn't support binding SelectedItem directly. 
+                             We'll handle it in code-behind for now or use a behavior. 
+                             For simplicity in this phase, I'll keep the SelectionChanged event in code-behind 
+                             but forward it to ViewModel. -->
+                        <EventSetter Event="Selected" Handler="TreeViewItem_Selected"/>
+                    </Style>
+                </TreeView.ItemContainerStyle>
             </TreeView>
 
             <!-- GridSplitter -->
@@ -143,36 +134,28 @@
                           VerticalAlignment="Stretch"/>
 
             <!-- Right side content with TabControl -->
-            <TabControl Grid.Column="2" x:Name="MainTabControl">
+            <TabControl Grid.Column="2" SelectedIndex="{Binding SelectedTabIndex}">
                 <!-- Table Tab -->
                 <TabItem Header="Table">
-                    <DataGrid x:Name="TableDataGrid"
+                    <DataGrid ItemsSource="{Binding Table.CurrentTable}"
                               AutoGenerateColumns="True"
                               IsReadOnly="True"
                               EnableRowVirtualization="True"
                               EnableColumnVirtualization="True"
-                              SelectionMode="Extended"
-                              CanUserSortColumns="True"
-                              CanUserReorderColumns="True"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.VirtualizationMode="Recycling"/>
                 </TabItem>
                 
                 <!-- Timeline Tab -->
                 <TabItem Header="Timeline">
-                    <ListView x:Name="TimelineListView"
+                    <ListView ItemsSource="{Binding Timeline.FilteredEvents}"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.VirtualizationMode="Recycling">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Timestamp" Width="200">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
+                                <GridViewColumn Header="Timestamp" Width="200" DisplayMemberBinding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"/>
                                 <GridViewColumn Header="Source" Width="200" DisplayMemberBinding="{Binding Source}"/>
+                                <GridViewColumn Header="GroupName" Width="150" DisplayMemberBinding="{Binding GroupName}"/>
                                 <GridViewColumn Header="Description" Width="600" DisplayMemberBinding="{Binding Description}"/>
                             </GridView>
                         </ListView.View>
