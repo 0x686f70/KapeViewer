@@ -19,6 +19,9 @@ namespace KapeViewer.ViewModels
         [ObservableProperty]
         private int _selectedTabIndex;
 
+        [ObservableProperty]
+        private bool _isBusy;
+
         public MainViewModel()
         {
             _fileTree = new FileTreeViewModel();
@@ -44,9 +47,17 @@ namespace KapeViewer.ViewModels
                 return;
             }
 
-            var allFiles = FileTree.Groups.SelectMany(g => g.Files).ToList();
-            await Timeline.BuildTimelineAsync(allFiles);
-            SelectedTabIndex = 1; // Switch to Timeline view
+            IsBusy = true;
+            try
+            {
+                var allFiles = FileTree.Groups.SelectMany(g => g.Files).ToList();
+                await Timeline.BuildTimelineAsync(allFiles);
+                SelectedTabIndex = 1; // Switch to Timeline view
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         [RelayCommand]

@@ -6,9 +6,17 @@
         xmlns:local="clr-namespace:KapeViewer"
         xmlns:models="clr-namespace:KapeViewer.Models"
         xmlns:vm="clr-namespace:KapeViewer.ViewModels"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         Title="KAPE Viewer" Height="800" Width="1200"
-        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
     
     <Window.InputBindings>
         <KeyBinding Key="O" Modifiers="Control" Command="{Binding FileTree.OpenCaseCommand}"/>
@@ -18,17 +26,37 @@
     </Window.InputBindings>
 
     <DockPanel>
-        <!-- Menu Bar at top -->
-        <Menu DockPanel.Dock="Top">
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top" IsMainMenu="True">
             <MenuItem Header="_File">
-                <MenuItem Header="_Open Case" Command="{Binding FileTree.OpenCaseCommand}" InputGestureText="Ctrl+O"/>
-                <MenuItem Header="_Export Current Table" Command="{Binding Table.ExportTableCommand}" InputGestureText="Ctrl+E"/>
+                <MenuItem Header="_Open Case" Command="{Binding FileTree.OpenCaseCommand}" InputGestureText="Ctrl+O">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="FolderOpen" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Export Current Table" Command="{Binding Table.ExportTableCommand}" InputGestureText="Ctrl+E">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="FileExport" />
+                    </MenuItem.Icon>
+                </MenuItem>
                 <Separator/>
-                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ExitToApp" />
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_Tools">
-                <MenuItem Header="Build Global _Timeline" Command="{Binding BuildTimelineCommand}" InputGestureText="Ctrl+T"/>
-                <MenuItem Header="_Export Timeline" Command="{Binding Timeline.ExportTimelineCommand}"/>
+                <MenuItem Header="Build Global _Timeline" Command="{Binding BuildTimelineCommand}" InputGestureText="Ctrl+T">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="TimelineClock" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Export Timeline" Command="{Binding Timeline.ExportTimelineCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="FileExport" />
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="_UTC/Local Time" IsCheckable="True" IsChecked="{Binding Timeline.IsUtcMode, Mode=TwoWay}" Command="{Binding Timeline.ToggleUtcModeCommand}"/>
@@ -36,132 +64,153 @@
         </Menu>
 
         <!-- Toolbar -->
-        <ToolBarTray DockPanel.Dock="Top">
-            <ToolBar>
-                <!-- Action Buttons -->
-                <Button Content="📁 Open Case" Command="{Binding FileTree.OpenCaseCommand}" ToolTip="Open KAPE case folder (Ctrl+O)"/>
-                <Button Content="⏱️ Build Global Timeline" Command="{Binding BuildTimelineCommand}" ToolTip="Merge all CSV files into timeline (Ctrl+T)"/>
-                
-                <Separator/>
-                
-                <!-- Date Range Filters (Bound to Timeline.FilterCriteria) -->
-                <TextBlock Text="From:" VerticalAlignment="Center" Margin="5,0"/>
-                <DatePicker Width="120" SelectedDate="{Binding Timeline.FilterCriteria.FromDate}" ToolTip="Filter start date"/>
-                
-                <TextBlock Text="To:" VerticalAlignment="Center" Margin="5,0"/>
-                <DatePicker Width="120" SelectedDate="{Binding Timeline.FilterCriteria.ToDate}" ToolTip="Filter end date"/>
-                
-                <ToggleButton Content="UTC" Width="50" IsChecked="{Binding Timeline.IsUtcMode}" Command="{Binding Timeline.ToggleUtcModeCommand}" ToolTip="Toggle between UTC and Local time"/>
-                
-                <Separator/>
-                
-                <!-- Quick Search -->
-                <TextBlock Text="Search:" VerticalAlignment="Center" Margin="5,0"/>
-                <TextBox Width="200" Text="{Binding Timeline.FilterCriteria.SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search timeline">
-                    <TextBox.InputBindings>
-                         <KeyBinding Key="Enter" Command="{Binding Timeline.ApplyFiltersCommand}"/> 
-                         <!-- Note: ApplyFiltersCommand is not yet exposed as ICommand in TimelineViewModel, need to add it or use behavior -->
-                    </TextBox.InputBindings>
-                </TextBox>
-                <Button Content="🔍" Command="{Binding Timeline.ApplyFiltersCommand}"/>
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="8" DockPanel.Dock="Top">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button Command="{Binding FileTree.OpenCaseCommand}" ToolTip="Open Case (Ctrl+O)" Style="{StaticResource MaterialDesignToolButton}" Foreground="{DynamicResource MaterialDesignBody}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FolderOpen" />
+                            <TextBlock Text="Open Case" Margin="8 0 0 0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding BuildTimelineCommand}" ToolTip="Build Timeline (Ctrl+T)" Style="{StaticResource MaterialDesignToolButton}" Foreground="{DynamicResource MaterialDesignBody}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="TimelineClock" />
+                            <TextBlock Text="Build Timeline" Margin="8 0 0 0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
 
-                <Separator/>
-                
-                <!-- Export -->
-                <Button Content="💾 Export Table" Command="{Binding Table.ExportTableCommand}" ToolTip="Export current table"/>
-                
-                <!-- Spacer -->
-                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Width="Auto" HorizontalAlignment="Stretch"/>
-                
-                <!-- Row Count Label -->
-                <TextBlock Text="{Binding Timeline.StatusMessage}" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold"/>
-            </ToolBar>
-        </ToolBarTray>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <!-- Filters -->
+                    <DatePicker Width="100" materialDesign:HintAssist.Hint="From" SelectedDate="{Binding Timeline.FilterCriteria.FromDate}" Margin="0 0 8 0" VerticalAlignment="Center"/>
+                    <DatePicker Width="100" materialDesign:HintAssist.Hint="To" SelectedDate="{Binding Timeline.FilterCriteria.ToDate}" Margin="0 0 8 0" VerticalAlignment="Center"/>
+                    
+                    <ToggleButton Style="{StaticResource MaterialDesignSwitchToggleButton}" IsChecked="{Binding Timeline.IsUtcMode}" Command="{Binding Timeline.ToggleUtcModeCommand}" ToolTip="UTC/Local" Margin="0 0 8 0"/>
+                    <TextBlock Text="UTC" VerticalAlignment="Center" Margin="0 0 16 0"/>
 
-        <!-- Status Bar at bottom -->
-        <StatusBar DockPanel.Dock="Bottom">
-            <TextBlock Text="{Binding FileTree.CurrentCasePath}" Margin="5,0"/>
-            <Separator/>
-            <TextBlock Text="{Binding Table.StatusMessage}" Margin="5,0"/>
-            <Separator/>
-            <TextBlock Text="{Binding Timeline.StatusMessage}" Margin="5,0"/>
+                    <!-- Search -->
+                    <TextBox Width="200" materialDesign:HintAssist.Hint="Search..." Text="{Binding Timeline.FilterCriteria.SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0 0 8 0">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding Timeline.ApplyFiltersCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <Button Command="{Binding Timeline.ApplyFiltersCommand}" Style="{StaticResource MaterialDesignToolButton}" Foreground="{DynamicResource MaterialDesignBody}">
+                        <materialDesign:PackIcon Kind="Magnify" />
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <!-- Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource MaterialDesignPaper}">
+            <StatusBarItem>
+                <TextBlock Text="{Binding FileTree.CurrentCasePath}" />
+            </StatusBarItem>
+            <Separator Style="{StaticResource MaterialDesignStatusBarSeparator}" />
+            <StatusBarItem>
+                <TextBlock Text="{Binding Table.StatusMessage}" />
+            </StatusBarItem>
+            <Separator Style="{StaticResource MaterialDesignStatusBarSeparator}" />
+            <StatusBarItem>
+                <TextBlock Text="{Binding Timeline.StatusMessage}" />
+            </StatusBarItem>
         </StatusBar>
 
-        <!-- Main content area -->
+        <!-- Main Content -->
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250"/>
-                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- TreeView for file navigation -->
-            <TreeView Grid.Column="0" 
-                      ItemsSource="{Binding FileTree.Groups}"
-                      x:Name="FileTreeView">
-                <TreeView.Resources>
-                    <HierarchicalDataTemplate DataType="{x:Type models:GroupNode}" 
-                                              ItemsSource="{Binding Files}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                            <TextBlock Text=" (" Margin="5,0,0,0"/>
-                            <TextBlock Text="{Binding FileCount}"/>
-                            <TextBlock Text=")"/>
-                        </StackPanel>
-                    </HierarchicalDataTemplate>
-                    
-                    <DataTemplate DataType="{x:Type models:CsvFileItem}">
-                        <TextBlock Text="{Binding DisplayName}"/>
-                    </DataTemplate>
-                </TreeView.Resources>
-                <TreeView.ItemContainerStyle>
-                    <Style TargetType="{x:Type TreeViewItem}">
-                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
-                        <!-- We need a way to bind selected item. 
-                             TreeView doesn't support binding SelectedItem directly. 
-                             We'll handle it in code-behind for now or use a behavior. 
-                             For simplicity in this phase, I'll keep the SelectionChanged event in code-behind 
-                             but forward it to ViewModel. -->
-                        <EventSetter Event="Selected" Handler="TreeViewItem_Selected"/>
-                    </Style>
-                </TreeView.ItemContainerStyle>
-            </TreeView>
+            <!-- Left Panel: File Tree -->
+            <materialDesign:Card Grid.Column="0" Margin="8" VerticalAlignment="Stretch">
+                <TreeView ItemsSource="{Binding FileTree.Groups}" x:Name="FileTreeView">
+                    <TreeView.Resources>
+                        <HierarchicalDataTemplate DataType="{x:Type models:GroupNode}" ItemsSource="{Binding Files}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Folder" Margin="0 0 8 0" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                                <TextBlock Text=" (" Foreground="Gray"/>
+                                <TextBlock Text="{Binding FileCount}" Foreground="Gray"/>
+                                <TextBlock Text=")" Foreground="Gray"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                        <DataTemplate DataType="{x:Type models:CsvFileItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileDelimited" Margin="0 0 8 0"/>
+                                <TextBlock Text="{Binding DisplayName}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </TreeView.Resources>
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            <EventSetter Event="Selected" Handler="TreeViewItem_Selected"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                </TreeView>
+            </materialDesign:Card>
 
-            <!-- GridSplitter -->
-            <GridSplitter Grid.Column="1" 
-                          Width="5" 
-                          HorizontalAlignment="Stretch" 
-                          VerticalAlignment="Stretch"/>
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"/>
 
-            <!-- Right side content with TabControl -->
-            <TabControl Grid.Column="2" SelectedIndex="{Binding SelectedTabIndex}">
-                <!-- Table Tab -->
-                <TabItem Header="Table">
-                    <DataGrid ItemsSource="{Binding Table.CurrentTable}"
-                              AutoGenerateColumns="True"
-                              IsReadOnly="True"
-                              EnableRowVirtualization="True"
-                              EnableColumnVirtualization="True"
-                              VirtualizingPanel.IsVirtualizing="True"
-                              VirtualizingPanel.VirtualizationMode="Recycling"/>
-                </TabItem>
-                
-                <!-- Timeline Tab -->
-                <TabItem Header="Timeline">
-                    <ListView ItemsSource="{Binding Timeline.FilteredEvents}"
-                              VirtualizingPanel.IsVirtualizing="True"
-                              VirtualizingPanel.VirtualizationMode="Recycling">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Timestamp" Width="200" DisplayMemberBinding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"/>
-                                <GridViewColumn Header="Source" Width="200" DisplayMemberBinding="{Binding Source}"/>
-                                <GridViewColumn Header="GroupName" Width="150" DisplayMemberBinding="{Binding GroupName}"/>
-                                <GridViewColumn Header="Description" Width="600" DisplayMemberBinding="{Binding Description}"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </TabItem>
-            </TabControl>
+            <!-- Right Panel: Tabs -->
+            <materialDesign:Card Grid.Column="2" Margin="8" VerticalAlignment="Stretch">
+                <TabControl SelectedIndex="{Binding SelectedTabIndex}" Style="{StaticResource MaterialDesignTabControl}">
+                    <TabItem Header="Table">
+                        <DataGrid ItemsSource="{Binding Table.CurrentTable}"
+                                  AutoGenerateColumns="True"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="All"
+                                  GridLinesVisibility="All"
+                                  CanUserAddRows="False"
+                                  EnableRowVirtualization="True"
+                                  EnableColumnVirtualization="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  Style="{StaticResource MaterialDesignDataGrid}"
+                                  CellStyle="{StaticResource MaterialDesignDataGridCell}"
+                                  ColumnHeaderStyle="{StaticResource MaterialDesignDataGridColumnHeader}"
+                                  RowStyle="{StaticResource MaterialDesignDataGridRow}"/>
+                    </TabItem>
+                    <TabItem Header="Timeline">
+                        <ListView ItemsSource="{Binding Timeline.FilteredEvents}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  Style="{StaticResource MaterialDesignListView}">
+                            <ListView.View>
+                                <GridView ColumnHeaderContainerStyle="{StaticResource MaterialDesignGridViewColumnHeader}">
+                                    <GridViewColumn Header="Timestamp" Width="180" DisplayMemberBinding="{Binding Timestamp, StringFormat='yyyy-MM-dd HH:mm:ss.fff'}"/>
+                                    <GridViewColumn Header="Source" Width="200" DisplayMemberBinding="{Binding Source}"/>
+                                    <GridViewColumn Header="Group" Width="150" DisplayMemberBinding="{Binding GroupName}"/>
+                                    <GridViewColumn Header="Description" Width="600" DisplayMemberBinding="{Binding Description}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </TabItem>
+                </TabControl>
+            </materialDesign:Card>
+
+            <!-- Loading Overlay -->
+            <Grid Grid.ColumnSpan="3" 
+                  Background="#80000000" 
+                  Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"
+                  d:Visibility="Visible">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                 Value="0"
+                                 IsIndeterminate="True"
+                                 Width="50"
+                                 Height="50"/>
+                    <TextBlock Text="Processing..." 
+                               Foreground="White" 
+                               Margin="0 10 0 0" 
+                               HorizontalAlignment="Center"
+                               FontSize="16"/>
+                </StackPanel>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

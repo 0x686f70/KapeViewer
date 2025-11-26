@@ -32,6 +32,6 @@ bld/
 *.nupkg
 *.snupkg
 **/packages/*
-tasks.md
+
 GEMINI.md
 .kiro/

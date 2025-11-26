@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using KapeViewer.Models;
 using KapeViewer.Services;
-using System.Collections.ObjectModel;
+using System.Collections;
 using System.IO;
 using System.Windows;
 
@@ -11,10 +11,10 @@ namespace KapeViewer.ViewModels
     public partial class TimelineViewModel : BaseViewModel
     {
         private readonly TimelineBuilder _timelineBuilder = new();
-        private List<TimelineEvent> _allEvents = new();
+        private readonly DatabaseService _databaseService = new();
 
         [ObservableProperty]
-        private ObservableCollection<TimelineEvent> _filteredEvents = new();
+        private IList _filteredEvents;
 
         [ObservableProperty]
         private FilterCriteria _filterCriteria = new();
@@ -27,6 +27,11 @@ namespace KapeViewer.ViewModels
 
         [ObservableProperty]
         private int _eventCount;
+
+        public TimelineViewModel()
+        {
+            _filteredEvents = new VirtualizingTimelineCollection(_databaseService, _filterCriteria);
+        }
 
         public async Task BuildTimelineAsync(List<CsvFileItem> files)
         {
@@ -53,11 +58,21 @@ namespace KapeViewer.ViewModels
 
             try
             {
-                _allEvents = await _timelineBuilder.BuildTimelineAsync(files, progress, cts.Token);
+                // Clear existing data
+                // Note: DatabaseService currently creates a new DB on init. 
+                // Ideally we should clear tables or recreate service, but for now we append or assume new session.
+                // Since DatabaseService is created once per ViewModel, we might want to clear it.
+                // But DatabaseService doesn't have Clear method yet. 
+                // Let's assume for this phase we just append or the user restarts app for new case.
+                // Actually, let's add a Clear method to DatabaseService later if needed.
+                
+                await _timelineBuilder.BuildTimelineAsync(files, _databaseService, progress, cts.Token);
+                
                 ApplyFilters();
                 
-                StatusMessage = $"Timeline built: {_allEvents.Count:N0} events";
-                MessageBox.Show($"Timeline built successfully!\nTotal events: {_allEvents.Count:N0}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                int count = _databaseService.GetEventCount(_filterCriteria);
+                StatusMessage = $"Timeline built: {count:N0} events";
+                MessageBox.Show($"Timeline built successfully!\nTotal events: {count:N0}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (OperationCanceledException)
             {
@@ -76,52 +91,31 @@ namespace KapeViewer.ViewModels
         [RelayCommand]
         public void ApplyFilters()
         {
-            if (_allEvents.Count == 0) return;
-
-            var query = _allEvents.AsEnumerable();
-
-            if (FilterCriteria.FromDate.HasValue)
-                query = query.Where(e => e.Timestamp >= FilterCriteria.FromDate.Value);
-
-            if (FilterCriteria.ToDate.HasValue)
-                query = query.Where(e => e.Timestamp <= FilterCriteria.ToDate.Value);
-
-            if (FilterCriteria.HasSourceFilter && FilterCriteria.SourceGroup != "All")
-                query = query.Where(e => e.GroupName == FilterCriteria.SourceGroup);
-
-            if (FilterCriteria.HasSearchFilter)
+            if (FilteredEvents is VirtualizingTimelineCollection vtc)
             {
-                var search = FilterCriteria.SearchText.ToLowerInvariant();
-                query = query.Where(e => 
-                    e.Source.ToLowerInvariant().Contains(search) ||
-                    e.Description.ToLowerInvariant().Contains(search) ||
-                    e.Timestamp.ToString().Contains(search));
+                vtc.Refresh();
+                EventCount = vtc.Count;
             }
-
-            var result = query.Select(e => new TimelineEvent
-            {
-                Timestamp = IsUtcMode ? DateTime.SpecifyKind(e.Timestamp, DateTimeKind.Utc) : e.Timestamp.ToLocalTime(),
-                Source = e.Source,
-                GroupName = e.GroupName,
-                Description = e.Description,
-                OriginalTimeString = e.OriginalTimeString
-            }).ToList();
-
-            FilteredEvents = new ObservableCollection<TimelineEvent>(result);
-            EventCount = result.Count;
         }
 
         [RelayCommand]
         private void ToggleUtcMode()
         {
             IsUtcMode = !IsUtcMode;
-            ApplyFilters();
+            if (FilteredEvents is VirtualizingTimelineCollection vtc)
+            {
+                vtc.IsUtcMode = IsUtcMode;
+            }
+            else
+            {
+                ApplyFilters();
+            }
         }
 
         [RelayCommand]
         private void ExportTimeline()
         {
-            if (FilteredEvents.Count == 0)
+            if (EventCount == 0)
             {
                 MessageBox.Show("No events to export.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -150,6 +144,7 @@ namespace KapeViewer.ViewModels
 
         private void ExportToCsv(string filePath)
         {
+            // Stream from DB to CSV to avoid loading all into memory
             using var writer = new StreamWriter(filePath);
             using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
 
@@ -159,14 +154,32 @@ namespace KapeViewer.ViewModels
             csv.WriteField("Description");
             csv.NextRecord();
 
-            foreach (var evt in FilteredEvents)
+            // Fetch in chunks
+            int offset = 0;
+            int limit = 1000;
+            while (true)
             {
-                csv.WriteField(evt.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                csv.WriteField(evt.Source);
-                csv.WriteField(evt.GroupName);
-                csv.WriteField(evt.Description);
-                csv.NextRecord();
+                var events = _databaseService.GetEvents(_filterCriteria, offset, limit);
+                if (events.Count == 0) break;
+
+                foreach (var evt in events)
+                {
+                    var timestamp = IsUtcMode ? DateTime.SpecifyKind(evt.Timestamp, DateTimeKind.Utc) : evt.Timestamp.ToLocalTime();
+                    csv.WriteField(timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                    csv.WriteField(evt.Source);
+                    csv.WriteField(evt.GroupName);
+                    csv.WriteField(evt.Description);
+                    csv.NextRecord();
+                }
+
+                offset += limit;
             }
+        }
+        
+        // Ensure DatabaseService is disposed
+        ~TimelineViewModel()
+        {
+            _databaseService.Dispose();
         }
     }
 }

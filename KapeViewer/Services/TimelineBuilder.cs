@@ -29,12 +29,19 @@ public class TimelineBuilder
     /// <param name="progress">Progress reporter for UI updates</param>
     /// <param name="cancellationToken">Cancellation token for long operations</param>
     /// <returns>List of TimelineEvent objects sorted by timestamp</returns>
-    public async Task<List<TimelineEvent>> BuildTimelineAsync(
+    /// <summary>
+    /// Builds a merged timeline from all CSV files asynchronously and stores in SQLite.
+    /// </summary>
+    /// <param name="files">List of CSV files to process</param>
+    /// <param name="databaseService">Database service for storage</param>
+    /// <param name="progress">Progress reporter for UI updates</param>
+    /// <param name="cancellationToken">Cancellation token for long operations</param>
+    public async Task BuildTimelineAsync(
         List<CsvFileItem> files,
+        DatabaseService databaseService,
         IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var allEvents = new List<TimelineEvent>();
         int processedFiles = 0;
 
         await Task.Run(() =>
@@ -46,7 +53,10 @@ public class TimelineBuilder
                 try
                 {
                     var events = ProcessCsvFile(file);
-                    allEvents.AddRange(events);
+                    if (events.Count > 0)
+                    {
+                        databaseService.BulkInsertEvents(events);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -58,11 +68,6 @@ public class TimelineBuilder
                 progress?.Report((int)((double)processedFiles / files.Count * 100));
             }
         }, cancellationToken);
-
-        // Sort all events by timestamp ascending
-        allEvents.Sort((a, b) => a.Timestamp.CompareTo(b.Timestamp));
-
-        return allEvents;
     }
 
     /// <summary>
